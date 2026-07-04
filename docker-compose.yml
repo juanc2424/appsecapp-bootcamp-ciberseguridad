@@ -1,0 +1,26 @@
+services:
+  # Núcleo de análisis estático (permisos, storage, TLS/cleartext, config insegura).
+  mobsf:
+    image: opensecurity/mobile-security-framework-mobsf:latest
+    container_name: appsec_mobsf
+    ports:
+      - "8000:8000"
+    volumes:
+      - mobsf_data:/root/.MobSF
+    restart: unless-stopped
+
+  # Trackers y permisos declarados (εxodus). Se invoca bajo demanda:
+  #   docker compose run --rm exodus /apks/<archivo>.apk
+  exodus:
+    image: exodusprivacy/exodus-standalone:latest
+    # La imagen solo publica build amd64 (usa dexdump x86_64); en Apple
+    # Silicon se emula vía QEMU/Rosetta.
+    platform: linux/amd64
+    container_name: appsec_exodus
+    volumes:
+      - ./apks:/apks:ro
+      - ./resultados:/resultados
+    profiles: ["tools"]
+
+volumes:
+  mobsf_data:

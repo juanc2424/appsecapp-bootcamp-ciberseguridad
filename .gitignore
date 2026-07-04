@@ -1,0 +1,17 @@
+# Secrets
+.env
+
+# APKs de prueba (pesan mucho, no versionar)
+apks/*
+!apks/.gitkeep
+
+# Salidas del análisis
+resultados/*
+!resultados/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
