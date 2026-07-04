@@ -58,6 +58,39 @@ run`) + **OSV.dev** (CVE de los SDKs/trackers detectados) + **VirusTotal**
 (reputación, si hay `VT_API_KEY`), y guarda en `resultados/<archivo>.json`
 un reporte normalizado con los parámetros definidos en el analizador.
 
+## Estructura del código (SOLID)
+
+```
+analizador/
+├── analizar.py               # CLI y composition root: único lugar que arma
+│                             #   las implementaciones concretas (DIP)
+└── nucleo/
+    ├── config.py             # Configuracion inmutable, se inyecta (no global)
+    ├── modelos.py            # ValorParametro, ContextoAnalisis
+    ├── persistencia.py       # RepositorioResultados (guardar JSON) (SRP)
+    ├── pipeline.py           # Orquestador: depende solo de abstracciones
+    ├── fuentes/              # una clase por herramienta externa (SRP)
+    │   ├── base.py           # interfaces: FuenteReporteApk, FuenteReputacion,
+    │   │                     #   FuenteVulnerabilidades, Verificable (ISP/LSP)
+    │   ├── mobsf.py          # ClienteMobSF
+    │   ├── exodus.py         # ClienteExodus
+    │   ├── osv.py            # ClienteOSV
+    │   └── virustotal.py     # ClienteVirusTotal
+    └── parametros/           # un extractor por parámetro (SRP/OCP)
+        ├── base.py           # ExtractorParametro (interfaz)
+        ├── __init__.py       # extractores_por_defecto(): registro; agregar un
+        │                     #   parámetro nuevo = nueva clase en esta lista,
+        │                     #   sin tocar el pipeline (OCP)
+        ├── permisos.py       # PLATFORM: peligrosos, sobre-privilegio, +INTERNET
+        ├── trackers.py       # PRIVACY: trackers (Exodus ∪ MobSF)
+        ├── red.py            # NETWORK: cifrado en tránsito
+        ├── almacenamiento.py # STORAGE: hallazgos MSTG-STORAGE-*
+        ├── configuracion.py  # CODE: exportados, backup, debuggable
+        ├── cadena_suministro.py  # M2: CVE en SDKs (vía OSV)
+        ├── reputacion.py     # vetting NIST: procedencia (vía VirusTotal)
+        └── manuales.py       # minimización de datos, declaración vs. realidad
+```
+
 El reporte trae 11 parámetros. 9 se extraen automáticamente. Solo
 **minimización de datos** y **declaración vs. realidad** no son evaluables con
 análisis estático y quedan marcados como pendientes de revisión manual

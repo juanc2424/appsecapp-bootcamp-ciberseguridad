@@ -2,7 +2,30 @@ import json
 
 import click
 
-from nucleo import config, mobsf_client, pipeline
+from nucleo.config import Configuracion
+from nucleo.fuentes.exodus import ClienteExodus
+from nucleo.fuentes.mobsf import ClienteMobSF
+from nucleo.fuentes.osv import ClienteOSV
+from nucleo.fuentes.virustotal import ClienteVirusTotal
+from nucleo.parametros import extractores_por_defecto
+from nucleo.persistencia import RepositorioResultados
+from nucleo.pipeline import Orquestador
+
+
+def _mobsf(cfg: Configuracion) -> ClienteMobSF:
+    return ClienteMobSF(cfg.mobsf_url, cfg.mobsf_api_key)
+
+
+def _orquestador(cfg: Configuracion) -> Orquestador:
+    """Composition root: único lugar donde se arman las implementaciones
+    concretas; el resto del código solo conoce las abstracciones."""
+    reputacion = ClienteVirusTotal(cfg.vt_api_key) if cfg.vt_api_key else None
+    return Orquestador(
+        analisis_estatico=_mobsf(cfg),
+        trackers=ClienteExodus(cfg.proyecto_dir, cfg.apks_dir, cfg.resultados_dir),
+        extractores=extractores_por_defecto(ClienteOSV(), reputacion),
+        repositorio=RepositorioResultados(cfg.resultados_dir),
+    )
 
 
 @click.group()
@@ -13,19 +36,21 @@ def cli():
 @cli.command()
 def estado():
     """Verifica que las herramientas del entorno (MobSF, etc.) estén disponibles."""
-    if mobsf_client.esta_disponible():
-        click.echo(f"[OK] MobSF responde en {config.MOBSF_URL}")
+    cfg = Configuracion.desde_env()
+    if _mobsf(cfg).esta_disponible():
+        click.echo(f"[OK] MobSF responde en {cfg.mobsf_url}")
     else:
-        click.echo(f"[FALLA] MobSF no responde en {config.MOBSF_URL}")
+        click.echo(f"[FALLA] MobSF no responde en {cfg.mobsf_url}")
         raise SystemExit(1)
 
 
 @cli.command()
 @click.argument("apk", type=click.Path(exists=True))
 def analizar(apk):
-    """Corre MobSF + Exodus sobre un APK y guarda el JSON normalizado en resultados/."""
+    """Corre MobSF + Exodus + OSV + VirusTotal sobre un APK y guarda el JSON
+    normalizado en resultados/."""
     click.echo(f"Analizando {apk}...")
-    reporte = pipeline.analizar(apk)
+    reporte = _orquestador(Configuracion.desde_env()).analizar(apk)
     click.echo(json.dumps(reporte, indent=2, ensure_ascii=False))
     click.echo(f"\n[OK] Reporte guardado en {reporte['meta']['archivo_salida']}")
 
