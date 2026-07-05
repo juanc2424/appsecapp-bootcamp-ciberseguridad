@@ -1,7 +1,7 @@
 import json
-import subprocess
 from pathlib import Path
 
+from . import docker_compose
 from .base import FuenteReporteApk
 
 
@@ -28,9 +28,9 @@ class ClienteExodus(FuenteReporteApk):
         # Un JSON viejo de una corrida anterior haría pasar por éxito un fallo.
         salida_path.unlink(missing_ok=True)
 
-        proceso = subprocess.run(
+        proceso = docker_compose.correr(
             [
-                "docker", "compose", "run", "--rm", "exodus",
+                "run", "--rm", "exodus",
                 f"/apks/{nombre}", "-j", "-o", f"/resultados/{salida}",
             ],
             cwd=self._proyecto_dir,

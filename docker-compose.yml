@@ -22,5 +22,14 @@ services:
       - ./resultados:/resultados
     profiles: ["tools"]
 
+  # Descarga de APKs por package_name (APKPure/F-Droid). Se invoca bajo demanda:
+  #   docker compose run --rm apkeep -a <package> -d apk-pure /apks
+  apkeep:
+    build: ./apkeep
+    container_name: appsec_apkeep
+    volumes:
+      - ./apks:/apks
+    profiles: ["tools"]
+
 volumes:
   mobsf_data:

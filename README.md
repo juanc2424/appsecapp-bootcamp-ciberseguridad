@@ -21,6 +21,7 @@ venv, no dentro de un contenedor. Solo las herramientas pesadas van en Docker:
 |---|---|---|
 | `mobsf` | Análisis estático (permisos, storage, TLS/cleartext, configs). Queda arriba en `:8000`, el host le habla por REST. | `docker compose up -d mobsf` |
 | `exodus` | `exodus-standalone` (trackers). Imagen solo `amd64`; en Apple Silicon se emula (`platform: linux/amd64`). El CLI lo invoca por subprocess. | `docker compose run --rm exodus /apks/<archivo>.apk` |
+| `apkeep` | Descarga APKs por `package_name` (APKPure). Imagen propia (`apkeep/Dockerfile`). Si baja un `.xapk`, el código extrae el APK base. | `docker compose --profile tools run --rm apkeep -a <package> -d apk-pure /apks` |
 
 (Se descartó correr el orquestador dentro de un contenedor `analizador`
 porque necesitaría montar el socket de Docker del host —
@@ -45,7 +46,32 @@ python3 analizar.py estado              # smoke test: confirma que MobSF respond
 APKs de prueba van en `apks/` (ignorado por git); los reportes se guardan en
 `resultados/` (también ignorado).
 
-## Analizar un APK
+## Buscar y descargar por nombre (sin APK a mano)
+
+```bash
+python3 analizar.py buscar "clean master"        # lista candidatas + package_name
+python3 analizar.py analizar-app com.cleanmaster.clma   # descarga (apkeep) + analiza
+```
+
+`buscar` usa Google Play (google-play-scraper) para resolver el nombre a un
+`package_name`; `analizar-app` descarga ese APK con el contenedor `apkeep` y
+lo pasa por el pipeline completo.
+
+> Nota: google-play-scraper deja el `appId` vacío en el "resultado destacado"
+> superior de la búsqueda (limitación conocida de la librería), así que ese
+> resultado exacto se descarta de la lista. Si no aparece la app que buscas,
+> pasá el `package_name` directo (`analizar-app <package>`, o el campo manual
+> en la GUI); lo ves en la URL de Play Store: `...?id=<package>`.
+
+### GUI (Streamlit)
+
+Flujo visual buscar → elegir → descargar → analizar:
+
+```bash
+streamlit run analizador/gui.py     # abre http://localhost:8501
+```
+
+## Analizar un APK ya descargado
 
 ```bash
 source .venv/bin/activate   # si no está activo

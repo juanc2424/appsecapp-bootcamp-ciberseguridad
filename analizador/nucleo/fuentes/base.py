@@ -37,3 +37,18 @@ class Verificable(ABC):
 
     @abstractmethod
     def esta_disponible(self) -> bool: ...
+
+
+class BuscadorApps(ABC):
+    """Busca apps por nombre y devuelve candidatas con su metadata."""
+
+    @abstractmethod
+    def buscar(self, texto: str, limite: int = 5) -> list[dict]:
+        """Cada candidata: package, titulo, developer, rating, instalaciones."""
+
+
+class DescargadorApk(ABC):
+    """Descarga el APK de una app por su package_name y devuelve la ruta local."""
+
+    @abstractmethod
+    def descargar(self, package: str) -> Path: ...
