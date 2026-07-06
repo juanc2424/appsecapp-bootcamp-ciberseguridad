@@ -16,6 +16,8 @@ class Configuracion:
     mobsf_url: str
     mobsf_api_key: str
     vt_api_key: str
+    google_play_email: str
+    google_play_aas_token: str
     proyecto_dir: pathlib.Path
     apks_dir: pathlib.Path
     resultados_dir: pathlib.Path
@@ -27,6 +29,8 @@ class Configuracion:
             mobsf_url=os.getenv("MOBSF_URL", "http://localhost:8000"),
             mobsf_api_key=os.getenv("MOBSF_API_KEY", ""),
             vt_api_key=os.getenv("VT_API_KEY", ""),
+            google_play_email=os.getenv("GOOGLE_PLAY_EMAIL", ""),
+            google_play_aas_token=os.getenv("GOOGLE_PLAY_AAS_TOKEN", ""),
             proyecto_dir=_PROYECTO_DIR,
             apks_dir=_PROYECTO_DIR / "apks",
             resultados_dir=_PROYECTO_DIR / "resultados",

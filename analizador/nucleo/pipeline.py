@@ -5,13 +5,15 @@ from .fuentes.base import FuenteReporteApk
 from .modelos import ContextoAnalisis
 from .parametros.base import ExtractorParametro
 from .persistencia import RepositorioResultados
+from .puntaje import CalculadoraRiesgo
 
 
 class Orquestador:
     """Corre las fuentes sobre un APK, extrae los parámetros y guarda el reporte.
 
-    Depende solo de abstracciones (fuentes y extractores inyectados):
-    agregar una herramienta o un parámetro nuevo no requiere tocar esta clase.
+    Depende solo de abstracciones (fuentes, extractores y calculadora
+    inyectados): agregar una herramienta o un parámetro nuevo no requiere
+    tocar esta clase.
     """
 
     def __init__(
@@ -20,11 +22,13 @@ class Orquestador:
         trackers: FuenteReporteApk,
         extractores: list[ExtractorParametro],
         repositorio: RepositorioResultados,
+        calculadora: CalculadoraRiesgo | None = None,
     ):
         self._analisis_estatico = analisis_estatico
         self._trackers = trackers
         self._extractores = extractores
         self._repositorio = repositorio
+        self._calculadora = calculadora
 
     def analizar(self, ruta_apk: str) -> dict:
         apk_path = pathlib.Path(ruta_apk).resolve()
@@ -57,6 +61,8 @@ class Orquestador:
                 "exodus_error": exodus_error,
             },
         }
+        if self._calculadora is not None:
+            reporte["puntaje"] = self._calculadora.calcular(reporte["parametros"])
 
         salida = self._repositorio.guardar(reporte, apk_path.stem)
         reporte["meta"]["archivo_salida"] = str(salida)

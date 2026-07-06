@@ -6,31 +6,34 @@ from .base import DescargadorApk
 
 
 class DescargadorApkeep(DescargadorApk):
-    """Descarga APKs por package_name usando el contenedor apkeep (APKPure).
+    """Descarga APKs por package_name usando el contenedor apkeep, desde una
+    única fuente configurada (APKPure, Google Play, F-Droid...).
 
     apkeep puede entregar un `.apk` plano o un `.xapk` (bundle: APK base +
     splits). MobSF/Exodus necesitan un `.apk`, así que si viene `.xapk` se
     extrae el APK base y se descarta el resto (los splits son solo recursos
     de idioma/densidad, irrelevantes para el análisis estático)."""
 
-    def __init__(self, proyecto_dir: Path, apks_dir: Path, fuente: str = "apk-pure"):
+    def __init__(
+        self, proyecto_dir: Path, apks_dir: Path, fuente: str = "apk-pure",
+        google_play_email: str = "", google_play_aas_token: str = "",
+    ):
         self._proyecto_dir = proyecto_dir
         self._apks_dir = apks_dir
         self._fuente = fuente
+        self._google_play_email = google_play_email
+        self._google_play_aas_token = google_play_aas_token
 
     def descargar(self, package: str) -> Path:
-        proceso = docker_compose.correr(
-            [
-                "--profile", "tools", "run", "--rm",
-                "apkeep", "-a", package, "-d", self._fuente, "/apks",
-            ],
-            cwd=self._proyecto_dir,
-            capture_output=True,
-            text=True,
-        )
+        args = ["--profile", "tools", "run", "--rm", "apkeep", "-a", package, "-d", self._fuente]
+        if self._fuente == "google-play":
+            args += ["-e", self._google_play_email, "-t", self._google_play_aas_token]
+        args.append("/apks")
+
+        proceso = docker_compose.correr(args, cwd=self._proyecto_dir, capture_output=True, text=True)
 
         apk = self._apks_dir / f"{package}.apk"
-        if apk.exists():
+        if apk.exists() and apk.stat().st_size > 0:
             return apk
 
         xapk = self._apks_dir / f"{package}.xapk"
@@ -38,7 +41,7 @@ class DescargadorApkeep(DescargadorApk):
             return self._extraer_base(xapk, package)
 
         raise RuntimeError(
-            f"apkeep no dejó ningún APK para {package}.\n"
+            f"apkeep ({self._fuente}) no dejó ningún APK para {package}.\n"
             f"stdout: {proceso.stdout}\nstderr: {proceso.stderr}"
         )
 
